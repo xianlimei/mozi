@@ -9,10 +9,11 @@ import (
 	"testing"
 )
 
+// use global instance for test
+var w = NewFileWatcher()
+
 func TestNewFileWatcher(t *testing.T) {
 	t.Run("create a watch", func(t *testing.T) {
-		w := NewFileWatcher()
-		defer w.watcher.Close()
 
 		if w == nil {
 			t.Errorf("NewFileWatcher() expect to return a valid pointer but get a nil")
@@ -49,10 +50,10 @@ func TestFileWatcher_DecodeSignal(t *testing.T) {
 		{"invalid event type", "7|c.txt", EventModify, "c.txt", true, false},
 		{"invalid event type", "ok|c.txt", EventModify, "c.txt", true, false},
 	}
-	w := NewFileWatcher()
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotHeader, gotFilename, err := w.DecodeSignal(tt.signal)
+			gotHeader, gotFilename, err := DecodeSignal(tt.signal)
 			if tt.wantErr != (err != nil) {
 				t.Errorf("FileWatcher.DecodeSignal() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -62,12 +63,11 @@ func TestFileWatcher_DecodeSignal(t *testing.T) {
 			}
 		})
 	}
-	w.watcher.Close()
 }
 
 func TestFileWatcher_AddDir(t *testing.T) {
-	w := NewFileWatcher()
-	defer w.watcher.Close()
+	// w := NewFileWatcher()
+	// defer w.watcher.Close()
 
 	t.Run("add dir successful", func(t *testing.T) {
 		tp, _ := ioutil.TempDir("", "")
@@ -95,6 +95,7 @@ func TestFileWatcher_AddDir(t *testing.T) {
 		if !reflect.DeepEqual([]string{tp}, w.Dirs) {
 			t.Errorf("FileWatcher.AddDir() add dir failed")
 		}
+		w.Dirs = make([]string, 0)
 	})
 
 	t.Run("add dir failed for unexist dir", func(t *testing.T) {
@@ -105,6 +106,7 @@ func TestFileWatcher_AddDir(t *testing.T) {
 			t.Errorf("FileWatcher.AddDir() expect to get err when add unexist dir")
 			return
 		}
+		w.Dirs = make([]string, 0)
 	})
 
 	t.Run("add dir failed for a exist file dir", func(t *testing.T) {
@@ -117,12 +119,13 @@ func TestFileWatcher_AddDir(t *testing.T) {
 			t.Errorf("FileWatcher.AddDir() expect to get err when add a exist file")
 			return
 		}
+		w.Dirs = make([]string, 0)
 	})
 }
 
 func TestFileWatcher_AddDirs(t *testing.T) {
-	w := NewFileWatcher()
-	defer w.watcher.Close()
+	// w := NewFileWatcher()
+	// defer w.watcher.Close()
 
 	t.Run("add dirs successful", func(t *testing.T) {
 
@@ -138,14 +141,15 @@ func TestFileWatcher_AddDirs(t *testing.T) {
 		}
 
 		if !reflect.DeepEqual([]string{tp1, tp2}, w.Dirs) {
-			t.Errorf("FileWatcher.AddDir() add dirs failed 2")
+			t.Errorf("FileWatcher.AddDirs() add dirs failed 2")
 		}
+		w.Dirs = make([]string, 0)
 	})
 }
 
 func TestFileWatcher_encodeSignal(t *testing.T) {
-	w := NewFileWatcher()
-	defer w.watcher.Close()
+	// w := NewFileWatcher()
+	// defer w.watcher.Close()
 
 	tests := []struct {
 		name     string
