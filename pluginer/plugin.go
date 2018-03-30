@@ -10,8 +10,8 @@ import (
 	"github.com/satori/go.uuid"
 )
 
-// JobName name for lookup
-const JobName = "JobName"
+// PluginName name for lookup
+const PluginName = "PluginName"
 
 // RunFunc name for lookup
 const RunFunc = "Run"
@@ -77,7 +77,7 @@ func (p *Plugin) init() error {
 	}
 
 	// bind name
-	name, err := plg.Lookup(JobName)
+	name, err := plg.Lookup(PluginName)
 	if err != nil {
 		return err
 	}

@@ -25,14 +25,17 @@
 package main
 
 import (
-	"bytes"
-	"encoding/gob"
+	"encoding/json"
 	"fmt"
 	"path/filepath"
 	"time"
 
 	"github.com/chenkaiC4/golang-plugins/jober"
 )
+
+type payload struct {
+	Element []int
+}
 
 func main() {
 	jer := jober.NewJober(filepath.Join(".", "tasks"), filepath.Join(".", "sos"))
@@ -41,16 +44,32 @@ func main() {
 	// jober.
 	for index := 0; index < 100; index++ {
 		time.Sleep(1 * time.Second)
-		fmt.Println("******* send print sum *******")
-		buf := &bytes.Buffer{}
-		en := gob.NewEncoder(buf)
+		fmt.Println("******* send print job *******")
 
-		args := &jober.JobArgs{
-			Name:  "Print",
-			Input: []byte("Go!"),
+		args1 := &jober.JobArgs{
+			Name: "Print",
+			Args: []byte("CK"),
 		}
-		en.Encode(args)
-		err := jer.AddJob(args)
+		err := jer.AddJob(args1)
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		time.Sleep(1 * time.Second)
+		fmt.Println("******* send sum job *******")
+		n := []int{1, 2, 3}
+		pld := &payload{
+			Element: n,
+		}
+		plgb, err := json.Marshal(pld)
+		if err != nil {
+			return
+		}
+		args2 := &jober.JobArgs{
+			Name: "Sum",
+			Args: plgb,
+		}
+		err = jer.AddJob(args2)
 		if err != nil {
 			fmt.Println(err)
 		}

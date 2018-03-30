@@ -12,8 +12,8 @@ import (
 
 // JobArgs create for
 type JobArgs struct {
-	Name  string
-	Input []byte
+	Name string `json:"name"`
+	Args []byte `json:"args"`
 }
 
 // Jober job manage
@@ -91,7 +91,7 @@ func (j *Jober) AddJob(args *JobArgs) error {
 	j.jobs[id] = job
 
 	// run the job
-	job.Run(args.Input)
+	job.Run(args.Args)
 
 	return nil
 }
