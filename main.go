@@ -25,141 +25,37 @@
 package main
 
 import (
+	"bytes"
+	"encoding/gob"
 	"fmt"
-	"io/ioutil"
-	"log"
-	"math/rand"
-	"os"
-	"os/exec"
 	"path/filepath"
-	"plugin"
 	"time"
 
 	"github.com/chenkaiC4/golang-plugins/jober"
 )
 
 func main() {
-	jober := jober.NewJober(filepath.Join(".", "tasks"), filepath.Join(".", "sos"))
-	jober.Start()
+	jer := jober.NewJober(filepath.Join(".", "tasks"), filepath.Join(".", "sos"))
+	jer.Start()
 
 	// jober.
 	for index := 0; index < 100; index++ {
 		time.Sleep(1 * time.Second)
-		fmt.Println("**************")
-		jober.ExecPluginMethodByName("Run")
-		fmt.Println("**************")
+		fmt.Println("******* send print sum *******")
+		buf := &bytes.Buffer{}
+		en := gob.NewEncoder(buf)
+
+		args := &jober.JobArgs{
+			Name:  "Print",
+			Input: []byte("Go!"),
+		}
+		en.Encode(args)
+		err := jer.AddJob(args)
+		if err != nil {
+			fmt.Println(err)
+		}
 	}
 	time.Sleep(30 * time.Second)
 
-	jober.Clear()
-}
-
-// loader keeps the context needed to find where plugins and
-// objects are stored.
-type loader struct {
-	pluginsDir string
-	objectsDir string
-}
-
-func newLoader() (*loader, error) {
-	// The directory that will be watched for new plugins.
-	wd, err := os.Getwd()
-	if err != nil {
-		return nil, fmt.Errorf("could not find current directory: %v", err)
-	}
-	pluginsDir := filepath.Join(wd, "plugins")
-
-	// The directory where all .so files will be stored.
-	tmp, err := ioutil.TempDir("", "")
-	if err != nil {
-		return nil, fmt.Errorf("could not create objects dir: %v", err)
-	}
-	return &loader{pluginsDir: pluginsDir, objectsDir: tmp}, nil
-}
-
-func (l *loader) destroy() { os.RemoveAll(l.pluginsDir) }
-
-func (l *loader) compileAndRun(name string) error {
-	obj, err := l.compile(name)
-	if err != nil {
-		return fmt.Errorf("could not compile %s: %v", name, err)
-	}
-	defer os.Remove(obj)
-
-	if err := l.call(obj); err != nil {
-		return fmt.Errorf("could not run %s: %v", obj, err)
-	}
-	return nil
-}
-
-// compile compiles the code in the given path, builds a
-// plugin, and returns its path.
-func (l *loader) compile(name string) (string, error) {
-	// Copy the file to the objects directory with a different name
-	// each time, to avoid retrieving the cached version.
-	// Apparently the cache key is the path of the file compiled and
-	// there's no way to invalidate it.
-	f, err := ioutil.ReadFile(filepath.Join(l.pluginsDir, name))
-	if err != nil {
-		return "", fmt.Errorf("could not read %s: %v", name, err)
-	}
-
-	name = fmt.Sprintf("%d.go", rand.Int())
-	srcPath := filepath.Join(l.objectsDir, name)
-	if err := ioutil.WriteFile(srcPath, f, 0666); err != nil {
-		return "", fmt.Errorf("could not write %s: %v", name, err)
-	}
-
-	objectPath := srcPath[:len(srcPath)-3] + ".so"
-
-	cmd := exec.Command("go", "build", "-buildmode=plugin", "-o="+objectPath, srcPath)
-	cmd.Stderr = os.Stderr
-	cmd.Stdout = os.Stdout
-	if err := cmd.Run(); err != nil {
-		return "", fmt.Errorf("could not compile %s: %v", name, err)
-	}
-
-	return objectPath, nil
-}
-
-// call loads the plugin object in the given path and runs the Run
-// function.
-func (l *loader) call(object string) error {
-	p, err := plugin.Open(object)
-	if err != nil {
-		return fmt.Errorf("could not open %s: %v", object, err)
-	}
-	run, err := p.Lookup("Run")
-	if err != nil {
-		return fmt.Errorf("could not find Run function: %v", err)
-	}
-	runFunc, ok := run.(func() error)
-	if !ok {
-		return fmt.Errorf("found Run but type is %T instead of func() error", run)
-	}
-	if err := runFunc(); err != nil {
-		return fmt.Errorf("plugin failed with error %v", err)
-	}
-	return nil
-}
-
-// goFiles lists all the files in the plugins
-func (l *loader) plugins() []string {
-	dir, err := os.Open(l.pluginsDir)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer dir.Close()
-	names, err := dir.Readdirnames(-1)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	var res []string
-	for _, name := range names {
-		if filepath.Ext(name) == ".go" {
-			res = append(res, name)
-		}
-	}
-	return res
+	jer.Clear()
 }

@@ -1,6 +1,7 @@
 package jober
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -8,6 +9,12 @@ import (
 	"github.com/chenkaiC4/golang-plugins/pluginer"
 	"github.com/chenkaiC4/golang-plugins/util"
 )
+
+// JobArgs create for
+type JobArgs struct {
+	Name  string
+	Input []byte
+}
 
 // Jober job manage
 type Jober struct {
@@ -52,11 +59,6 @@ func (j *Jober) Start() {
 	j.loadJobsFromDir()
 }
 
-//ExecPluginMethodByName exec plugin method by name
-func (j *Jober) ExecPluginMethodByName(name string) {
-	j.plger.RunMethodByName(name)
-}
-
 func (j *Jober) loadJobsFromDir() (err error) {
 	util.TraversalDir(j.dir, func(fp string) {
 		fmt.Printf("begin to load job: %s\nresult: \t", fp)
@@ -73,16 +75,24 @@ func (j *Jober) loadJobsFromDir() (err error) {
 	return err
 }
 
-// RunJobByID run a job by ID
-func (j *Jober) RunJobByID(id string) {
-	j.jobs[id].Run()
-}
-
 // AddJob add a new Job
-func (j *Jober) AddJob(job *Job) error {
-	if _, has := j.jobs[job.ID]; !has {
-		j.jobs[job.ID] = job
+func (j *Jober) AddJob(args *JobArgs) error {
+	name := args.Name
+	if name == "" {
+		return errors.New("job name is empty")
 	}
+	plg, err := j.plger.GetPluginByName(name)
+	if err != nil {
+		return fmt.Errorf("find plugin by name failed: %v", err)
+	}
+
+	job := NewJob(plg)
+	id := job.GetID()
+	j.jobs[id] = job
+
+	// run the job
+	job.Run(args.Input)
+
 	return nil
 }
 

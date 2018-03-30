@@ -10,9 +10,17 @@ import (
 	"github.com/satori/go.uuid"
 )
 
+// JobName name for lookup
+const JobName = "JobName"
+
+// RunFunc name for lookup
+const RunFunc = "Run"
+
 // Plugin a plugin program
 type Plugin struct {
-	id     string
+	name   string
+	uuid   string
+	run    func([]byte) error
 	path   string // 源文件路径
 	dst    string // so 文件夹路径
 	sopath string // so path
@@ -21,9 +29,7 @@ type Plugin struct {
 
 // NewPlugin create a new program
 func NewPlugin(path, dst string) (*Plugin, error) {
-	id := uuid.NewV4().String()
 	program := &Plugin{
-		id:   id,
 		path: path,
 		dst:  dst,
 	}
@@ -40,7 +46,12 @@ func (p *Plugin) GetPath() string {
 
 // GetID get id
 func (p *Plugin) GetID() string {
-	return p.id
+	return p.uuid
+}
+
+// GetName get name
+func (p *Plugin) GetName() string {
+	return p.name
 }
 
 // GetDst get dst
@@ -50,33 +61,48 @@ func (p *Plugin) GetDst() string {
 
 // init get plugin
 func (p *Plugin) init() error {
-	p.sopath = filepath.Join(p.dst, p.id) + ".so"
+	p.uuid = uuid.NewV4().String()
+	p.sopath = filepath.Join(p.dst, p.uuid) + ".so"
+
 	cmd := exec.Command("go", "build", "-buildmode=plugin", "-o="+p.sopath, p.path)
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stdout
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("could not compile %s: %v", p.path, err)
 	}
+
 	plg, err := plugin.Open(p.sopath)
 	if err != nil {
 		return fmt.Errorf("could not open %s: %v", p.sopath, err)
 	}
-	p.plg = plg
-	return nil
-}
 
-// RunMethodByName run method by name
-func (p *Plugin) RunMethodByName(name string) error {
-	f, err := p.plg.Lookup(name)
+	// bind name
+	name, err := plg.Lookup(JobName)
 	if err != nil {
 		return err
 	}
-	f.(func() error)()
+	p.name = name.(func() string)()
+
+	// bind run function
+	runFunc, err := plg.Lookup(RunFunc)
+	if err != nil {
+		return err
+	}
+	p.run = runFunc.(func([]byte) error)
+
+	// finally bind plugin
+	p.plg = plg
+
 	return nil
 }
 
+// Run run job with the loaded plugin
+func (p *Plugin) Run(input []byte) error {
+	return p.run(input)
+}
+
 func (p *Plugin) String() string {
-	return fmt.Sprintf("plugin ID: %s, path: %s", p.id, p.path)
+	return fmt.Sprintf("plugin %s [%s], path: %s", p.name, p.uuid, p.path)
 }
 
 // Destroy destroy plugin
