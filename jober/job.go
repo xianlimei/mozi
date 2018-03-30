@@ -25,6 +25,6 @@ func (j *Job) GetID() string {
 }
 
 // Run job
-func (j *Job) Run(input []byte) error {
-	return j.plugin.Run(input)
+func (j *Job) Run(jobName string, input []byte) error {
+	return j.plugin.Run(jobName, input)
 }

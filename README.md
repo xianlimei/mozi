@@ -21,3 +21,11 @@ type JobArgs struct {
 
 
 在这其中，`Args` 的 `[]byte` 中包含的有效 `struct` 数据是业务逻辑中已经设计好的，通常 `.so` 中会有相应的 `struct` 类型用于 `decode`。
+
+
+## TODO
+[ ] 编写 server
+[ ] job 本地化 (参考 nsq 的方案)
+[ ] job 统计
+[ ] 补全单元测试
+[ ] 编写 client

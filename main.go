@@ -41,23 +41,13 @@ func main() {
 	jer := jober.NewJober(filepath.Join(".", "tasks"), filepath.Join(".", "sos"))
 	jer.Start()
 
+	time.Sleep(2 * time.Second)
 	// jober.
 	for index := 0; index < 100; index++ {
-		time.Sleep(1 * time.Second)
-		fmt.Println("******* send print job *******")
-
-		args1 := &jober.JobArgs{
-			Name: "Print",
-			Args: []byte("CK"),
-		}
-		err := jer.AddJob(args1)
-		if err != nil {
-			fmt.Println(err)
-		}
 
 		time.Sleep(1 * time.Second)
-		fmt.Println("******* send sum job *******")
-		n := []int{1, 2, 3}
+		fmt.Println("******* send math default job *******")
+		n := []int{1, 2, 3, 4, 5}
 		pld := &payload{
 			Element: n,
 		}
@@ -66,13 +56,34 @@ func main() {
 			return
 		}
 		args2 := &jober.JobArgs{
-			Name: "Sum",
+			Name: "Math",
 			Args: plgb,
 		}
 		err = jer.AddJob(args2)
 		if err != nil {
 			fmt.Println(err)
 		}
+
+		fmt.Println("******* send math sum job *******")
+		args2 = &jober.JobArgs{
+			Name: "Math.Sum",
+			Args: plgb,
+		}
+		err = jer.AddJob(args2)
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		fmt.Println("******* send math Multiply job *******")
+		args2 = &jober.JobArgs{
+			Name: "Math.Multiply",
+			Args: plgb,
+		}
+		err = jer.AddJob(args2)
+		if err != nil {
+			fmt.Println(err)
+		}
+
 	}
 	time.Sleep(30 * time.Second)
 

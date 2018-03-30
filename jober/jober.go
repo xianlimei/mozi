@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/chenkaiC4/golang-plugins/notify"
 	"github.com/chenkaiC4/golang-plugins/pluginer"
@@ -65,7 +66,7 @@ func (j *Jober) loadJobsFromDir() (err error) {
 		if err == nil {
 			e := j.plger.LoadPlugin(fp)
 			if e != nil {
-				fmt.Println("Failed")
+				fmt.Printf("Failed\n %v", e)
 				err = fmt.Errorf("load job: %s failed, err: %v", fp, e)
 				return
 			}
@@ -81,7 +82,8 @@ func (j *Jober) AddJob(args *JobArgs) error {
 	if name == "" {
 		return errors.New("job name is empty")
 	}
-	plg, err := j.plger.GetPluginByName(name)
+	plgName := getPluginName(name)
+	plg, err := j.plger.GetPluginByName(plgName)
 	if err != nil {
 		return fmt.Errorf("find plugin by name failed: %v", err)
 	}
@@ -91,9 +93,13 @@ func (j *Jober) AddJob(args *JobArgs) error {
 	j.jobs[id] = job
 
 	// run the job
-	job.Run(args.Args)
+	job.Run(name, args.Args)
 
 	return nil
+}
+
+func getPluginName(jobName string) string {
+	return strings.Split(jobName, ".")[0]
 }
 
 // Clear clear all plugin

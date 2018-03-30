@@ -6,25 +6,23 @@ import (
 	"os/exec"
 	"path/filepath"
 	"plugin"
+	"strings"
 
 	"github.com/satori/go.uuid"
 )
 
-// PluginName name for lookup
-const PluginName = "PluginName"
-
 // RunFunc name for lookup
-const RunFunc = "Run"
+const RunFunc = "Core"
 
 // Plugin a plugin program
 type Plugin struct {
-	name   string
-	uuid   string
-	run    func([]byte) error
-	path   string // 源文件路径
-	dst    string // so 文件夹路径
-	sopath string // so path
-	plg    *plugin.Plugin
+	name    string
+	uuid    string
+	path    string // 源文件路径
+	dst     string // so 文件夹路径
+	sopath  string // so path
+	plg     *plugin.Plugin
+	methods Methods
 }
 
 // NewPlugin create a new program
@@ -76,20 +74,24 @@ func (p *Plugin) init() error {
 		return fmt.Errorf("could not open %s: %v", p.sopath, err)
 	}
 
-	// bind name
-	name, err := plg.Lookup(PluginName)
+	// bind core function
+	symbol, err := plg.Lookup(RunFunc)
 	if err != nil {
 		return err
 	}
-	p.name = name.(func() string)()
 
-	// bind run function
-	runFunc, err := plg.Lookup(RunFunc)
-	if err != nil {
-		return err
+	// check func type
+	itf, ok := symbol.(func() interface{})
+	if !ok {
+		return fmt.Errorf("plugin %s:: function [Methods] should be <func() interface{}>", p.sopath)
 	}
-	p.run = runFunc.(func([]byte) error)
-
+	// run and check the return value, the value should implemet Methods interface
+	methods, ok := itf().(Methods)
+	if !ok {
+		return fmt.Errorf("plugin %s is not implement Methods interface", p.sopath)
+	}
+	p.name = methods.PluginName()
+	p.methods = methods
 	// finally bind plugin
 	p.plg = plg
 
@@ -97,8 +99,29 @@ func (p *Plugin) init() error {
 }
 
 // Run run job with the loaded plugin
-func (p *Plugin) Run(input []byte) error {
-	return p.run(input)
+func (p *Plugin) Run(jobName string, input []byte) error {
+	vars := strings.Split(jobName, ".")
+	switch len(vars) {
+	case 1:
+		return p.RunDefault(input)
+	case 2:
+		return p.RunByName(vars[1], input)
+	}
+	return p.methods.DefaultMethod(input)
+}
+
+// RunByName run job with the loaded plugin
+func (p *Plugin) RunByName(name string, input []byte) error {
+	method, err := p.methods.GetMethodByName(name)
+	if err != nil {
+		return err
+	}
+	return method(input)
+}
+
+// RunDefault run default method
+func (p *Plugin) RunDefault(input []byte) error {
+	return p.methods.DefaultMethod(input)
 }
 
 func (p *Plugin) String() string {
