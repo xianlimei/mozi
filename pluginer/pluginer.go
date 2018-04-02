@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/chenkaiC4/golang-plugins/util"
+	"github.com/go-done/mozi/util"
 )
 
 // Pluginer use golang plugin package to hot load program

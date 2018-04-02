@@ -6,9 +6,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/chenkaiC4/golang-plugins/notify"
-	"github.com/chenkaiC4/golang-plugins/pluginer"
-	"github.com/chenkaiC4/golang-plugins/util"
+	"github.com/go-done/mozi/notify"
+	"github.com/go-done/mozi/pluginer"
+	"github.com/go-done/mozi/util"
 )
 
 // JobArgs create for

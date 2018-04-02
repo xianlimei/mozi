@@ -1,7 +1,7 @@
 package jober
 
 import (
-	"github.com/chenkaiC4/golang-plugins/pluginer"
+	"github.com/go-done/mozi/pluginer"
 	"github.com/satori/go.uuid"
 )
 
