@@ -1,6 +1,7 @@
 package jober
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -77,7 +78,9 @@ func (j *Jober) loadJobsFromDir() (err error) {
 }
 
 // AddJob add a new Job
-func (j *Jober) AddJob(args *JobArgs) error {
+func (j *Jober) AddJob(body []byte) error {
+	args := &JobArgs{}
+	json.Unmarshal(body, args)
 	name := args.Name
 	if name == "" {
 		return errors.New("job name is empty")

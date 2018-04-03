@@ -35,30 +35,31 @@ func main() {
 			Name: "Math",
 			Args: plgb,
 		}
-		err = jer.AddJob(args2)
+		bb, _ := json.Marshal(args2)
+		err = jer.AddJob(bb)
 		if err != nil {
 			fmt.Println(err)
 		}
 
-		fmt.Println("******* send math sum job *******")
-		args2 = &jober.JobArgs{
-			Name: "Math.Sum",
-			Args: plgb,
-		}
-		err = jer.AddJob(args2)
-		if err != nil {
-			fmt.Println(err)
-		}
+		// fmt.Println("******* send math sum job *******")
+		// args2 = &jober.JobArgs{
+		// 	Name: "Math.Sum",
+		// 	Args: plgb,
+		// }
+		// err = jer.AddJob(args2)
+		// if err != nil {
+		// 	fmt.Println(err)
+		// }
 
-		fmt.Println("******* send math Multiply job *******")
-		args2 = &jober.JobArgs{
-			Name: "Math.Multiply",
-			Args: plgb,
-		}
-		err = jer.AddJob(args2)
-		if err != nil {
-			fmt.Println(err)
-		}
+		// fmt.Println("******* send math Multiply job *******")
+		// args2 = &jober.JobArgs{
+		// 	Name: "Math.Multiply",
+		// 	Args: plgb,
+		// }
+		// err = jer.AddJob(args2)
+		// if err != nil {
+		// 	fmt.Println(err)
+		// }
 
 	}
 	time.Sleep(30 * time.Second)
