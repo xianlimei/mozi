@@ -6,16 +6,13 @@ import (
 	"os"
 	"strings"
 
+	"github.com/go-done/mozi/jober/extracter"
+	"github.com/go-done/mozi/jober/queue"
+	"github.com/go-done/mozi/jober/structs"
 	"github.com/go-done/mozi/notify"
 	"github.com/go-done/mozi/pluginer"
 	"github.com/go-done/mozi/util"
 )
-
-// JobArgs create for
-type JobArgs struct {
-	Name string `json:"name"`
-	Args []byte `json:"args"`
-}
 
 // Jober job manage
 type Jober struct {
@@ -23,8 +20,11 @@ type Jober struct {
 	dir      string // directory for job file
 	sodir    string // directory for so file
 	plger    *pluginer.Pluginer
-	hotLoad  bool                // hot to load job file
-	notifyer *notify.FileWatcher // filewatch
+	hotLoad  bool                  // hot to load job file
+	notifyer *notify.FileWatcher   // filewatch
+	exter    extracter.Extracter   // extracter
+	jobch    chan *structs.JobArgs // chan for job to be exec
+	queue    queue.Queue           // job queue
 }
 
 // NewJober create a new Job
@@ -32,6 +32,8 @@ func NewJober(dir, sodir string) *Jober {
 	plger := pluginer.NewPluginer(sodir)
 	notifyer := notify.NewFileWatcher()
 	notifyer.AddDir(dir)
+	exter := extracter.NewExtracter()
+	q := queue.NewRedisQueue("localhost:6379", "", 0)
 
 	return &Jober{
 		jobs:     make(map[string]*Job),
@@ -40,6 +42,9 @@ func NewJober(dir, sodir string) *Jober {
 		plger:    plger,
 		hotLoad:  true,
 		notifyer: notifyer,
+		exter:    exter,
+		jobch:    make(chan *structs.JobArgs, 20),
+		queue:    q,
 	}
 }
 
@@ -57,7 +62,48 @@ func (j *Jober) Start() {
 		}()
 	}
 
+	// load job from dir
 	j.loadJobsFromDir()
+
+	// start worker
+	for i := 0; i < 10; i++ {
+		go j.jobWorker(j.jobch)
+	}
+
+	// start load job
+	go j.jobLoader(j.jobch)
+}
+
+// jobWorker worker for run job
+func (j *Jober) jobWorker(jobch <-chan *structs.JobArgs) error {
+	for {
+		job, ok := <-jobch
+		if ok {
+			err := j.execJob(job) // TODO send back exec result to another channel
+			fmt.Println("execjob error:", err)
+		}
+	}
+}
+
+// AddJob add a job
+func (j *Jober) AddJob(jobBody []byte) error {
+	jobArgs, err := j.exter.ExtractJob(jobBody)
+	if err != nil {
+		return err
+	}
+	return j.exter.SendJobToQueue(j.queue, jobArgs)
+}
+
+// jobLoader load job from queue
+func (j *Jober) jobLoader(jobch chan<- *structs.JobArgs) {
+	for {
+		job, err := j.exter.LoadJobFromQueue(j.queue)
+		if err != nil {
+			fmt.Println("LoadJobFromQueue error: ", err)
+		}
+		fmt.Println("new job: ", job)
+		jobch <- job
+	}
 }
 
 func (j *Jober) loadJobsFromDir() (err error) {
@@ -76,8 +122,12 @@ func (j *Jober) loadJobsFromDir() (err error) {
 	return err
 }
 
-// AddJob add a new Job
-func (j *Jober) AddJob(args *JobArgs) error {
+type Payload struct {
+	Element []int `json:"element"`
+}
+
+// execJob run a job
+func (j *Jober) execJob(args *structs.JobArgs) error {
 	name := args.Name
 	if name == "" {
 		return errors.New("job name is empty")
@@ -91,19 +141,23 @@ func (j *Jober) AddJob(args *JobArgs) error {
 	job := NewJob(plg)
 	id := job.GetID()
 	j.jobs[id] = job
-
+	// p := &Payload{}
+	// json.Unmarshal(args.Args, p)
+	// fmt.Printf("exec job, %+v", p)
+	fmt.Printf("exec job, %+v, %T\n", args, args)
+	//fmt.Printf("exec job, %+v, %T\n", string(args.Args), args.Args)
 	// run the job
 	job.Run(name, args.Args)
 
 	return nil
 }
 
-func getPluginName(jobName string) string {
-	return strings.Split(jobName, ".")[0]
-}
-
 // Clear clear all plugin
 func (j *Jober) Clear() {
 	j.plger.DestroyAllPlugins()
 	os.RemoveAll(j.sodir)
+}
+
+func getPluginName(jobName string) string {
+	return strings.Split(jobName, ".")[0]
 }

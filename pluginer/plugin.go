@@ -121,6 +121,7 @@ func (p *Plugin) RunByName(name string, input []byte) error {
 
 // RunDefault run default method
 func (p *Plugin) RunDefault(input []byte) error {
+	fmt.Println("RunDefault 执行了")
 	return p.methods.DefaultMethod(input)
 }
 
