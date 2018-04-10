@@ -110,7 +110,7 @@ func (j *Jober) jobLoader(jobch chan<- *structs.JobArgs) {
 }
 
 func (j *Jober) loadJobsFromDir() (err error) {
-	util.TraversalDir(j.dir, func(fp string) {
+	util.TraversalDirByExt(j.dir, ".so", func(fp string) {
 		fmt.Printf("begin to load job: %s\nresult: \t", fp)
 		if err == nil {
 			e := j.plger.LoadPlugin(fp)
