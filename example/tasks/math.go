@@ -22,20 +22,17 @@ func (m *math) GetMethodByName(name string) (func([]byte) error, error) {
 }
 
 func (m *math) DefaultMethod(input []byte) error {
-	fmt.Println("default method 调用了")
-	p := &Payload{}
 	if input == nil {
 		return nil
 	}
 
-	fmt.Printf("[INPUT] pt: %p, data: %+v \n", input, input)
-	fmt.Printf("[Payload] pt: %p, data: %+v \n", p, p)
+	p := &Payload{}
 	err := json.Unmarshal(input, p)
-	fmt.Println("==== successful ====")
 	if err != nil {
 		fmt.Println("err: ", err)
 		return err
 	}
+
 	fmt.Printf("Default Method Exec: %+v\n", p.Element)
 	return nil
 }
@@ -74,6 +71,7 @@ func Core() interface{} {
 
 func main() {}
 
+// Payload struct for input slice
 type Payload struct {
 	Element []int `json:"element"`
 }

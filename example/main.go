@@ -10,6 +10,7 @@ import (
 	"github.com/go-done/mozi/jober/structs"
 )
 
+// Payload just for test
 type Payload struct {
 	Element []int `json:"element"`
 }
@@ -42,27 +43,27 @@ func main() {
 			fmt.Println(err)
 		}
 
-		// fmt.Println("******* send math sum job *******")
-		// args2 = &jober.JobArgs{
-		// 	Name: "Math.Sum",
-		// 	Args: plgb,
-		// }
-		// jobBody, _ = json.Marshal(args2)
-		// err = jer.AddJob(jobBody)
-		// if err != nil {
-		// 	fmt.Println(err)
-		// }
+		fmt.Println("******* send math sum job *******")
+		args2 = &structs.JobArgs{
+			Name: "Math.Sum",
+			Args: plgb,
+		}
+		jobBody, _ = json.Marshal(args2)
+		err = jer.AddJob(jobBody)
+		if err != nil {
+			fmt.Println(err)
+		}
 
-		// fmt.Println("******* send math Multiply job *******")
-		// args2 = &jober.JobArgs{
-		// 	Name: "Math.Multiply",
-		// 	Args: plgb,
-		// }
-		// jobBody, _ = json.Marshal(args2)
-		// err = jer.AddJob(jobBody)
-		// if err != nil {
-		// 	fmt.Println(err)
-		// }
+		fmt.Println("******* send math Multiply job *******")
+		args2 = &structs.JobArgs{
+			Name: "Math.Multiply",
+			Args: plgb,
+		}
+		jobBody, _ = json.Marshal(args2)
+		err = jer.AddJob(jobBody)
+		if err != nil {
+			fmt.Println(err)
+		}
 
 	}
 	time.Sleep(30 * time.Second)
