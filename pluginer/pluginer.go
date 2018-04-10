@@ -3,33 +3,27 @@ package pluginer
 import (
 	"errors"
 	"fmt"
-
-	"github.com/go-done/mozi/util"
 )
 
 // Pluginer use golang plugin package to hot load program
 type Pluginer struct {
 	path2name map[string]string // k-v: <path, name>
 	name2plg  map[string]*Plugin
-	dir       string
 }
 
 // NewPluginer create pluginer
-func NewPluginer(dir string) *Pluginer {
-	util.MustBeDir(dir)
-
+func NewPluginer() *Pluginer {
 	return &Pluginer{
 		name2plg:  make(map[string]*Plugin),
 		path2name: make(map[string]string),
-		dir:       dir,
 	}
 }
 
 // LoadPlugin load a new plugin by path
 func (p *Pluginer) LoadPlugin(path string) error {
-	plg, err := NewPlugin(path, p.dir)
+	plg, err := NewPlugin(path)
 	if err != nil {
-		return fmt.Errorf("create plugin failed: %v", err)
+		return err
 	}
 	return p.AddPlugin(plg)
 }
@@ -48,11 +42,21 @@ func (p *Pluginer) AddPlugin(plg *Plugin) error {
 			p.updatePluginByName(name, plg)
 		} else {
 			// name exist but with another path --> conflict error
-			return fmt.Errorf("plugin name: [%s] is occupied at %s", name, path)
+			p := p.name2plg[name].GetPath()
+			return fmt.Errorf("plugin name: [%s] is conflict with loaded plugin at %s", name, p)
 		}
 	}
 
 	return nil
+}
+
+// GetPluginByName get plugin by name
+func (p *Pluginer) GetPluginByName(name string) (*Plugin, error) {
+	plg, exist := p.name2plg[name]
+	if exist {
+		return plg, nil
+	}
+	return nil, errors.New("plugin not found")
 }
 
 // addNewPlugin add a pure new plugin
@@ -65,9 +69,7 @@ func (p *Pluginer) addNewPlugin(plg *Plugin) {
 
 // updatePluginByName update the plugin by name
 func (p *Pluginer) updatePluginByName(name string, plg *Plugin) {
-	oldPlugin := p.name2plg[name]
 	p.name2plg[name] = plg
-	oldPlugin.Destroy()
 }
 
 // isPluginPathExist check the plugin path existance at pluginer
@@ -80,26 +82,4 @@ func (p *Pluginer) isPluginPathExist(path string) bool {
 func (p *Pluginer) isPluginNameExist(name string) bool {
 	_, exist := p.name2plg[name]
 	return exist
-}
-
-// GetPluginByName get plugin by name
-func (p *Pluginer) GetPluginByName(name string) (*Plugin, error) {
-	plg, exist := p.name2plg[name]
-	if exist {
-		return plg, nil
-	}
-	return nil, errors.New("not found")
-}
-
-// DestroyAllPlugins destroy all plugins
-func (p *Pluginer) DestroyAllPlugins() error {
-	for name := range p.name2plg {
-		if err := p.name2plg[name].Destroy(); err != nil {
-			return err
-		}
-	}
-	// bind new address, free the old
-	p.name2plg = make(map[string]*Plugin)
-	p.path2name = make(map[string]string)
-	return nil
 }

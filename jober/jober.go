@@ -3,7 +3,6 @@ package jober
 import (
 	"errors"
 	"fmt"
-	"os"
 	"strings"
 	"time"
 
@@ -18,8 +17,7 @@ import (
 // Jober job manage
 type Jober struct {
 	jobs     map[string]*Job
-	dir      string // directory for job file
-	sodir    string // directory for so file
+	dir      string // directory for so job file
 	plger    *pluginer.Pluginer
 	hotLoad  bool                  // hot to load job file
 	notifyer *notify.FileWatcher   // filewatch
@@ -29,7 +27,7 @@ type Jober struct {
 }
 
 // NewJober create a new Job
-func NewJober(dir, sodir string) *Jober {
+func NewJober(dir string) *Jober {
 	plger := pluginer.NewPluginer(sodir)
 	notifyer := notify.NewFileWatcher()
 	notifyer.AddDir(dir)
@@ -39,7 +37,6 @@ func NewJober(dir, sodir string) *Jober {
 	return &Jober{
 		jobs:     make(map[string]*Job),
 		dir:      dir,
-		sodir:    sodir,
 		plger:    plger,
 		hotLoad:  true,
 		notifyer: notifyer,
@@ -161,7 +158,6 @@ func (j *Jober) execJob(args *structs.JobArgs) error {
 // Clear clear all plugin
 func (j *Jober) Clear() {
 	j.plger.DestroyAllPlugins()
-	os.RemoveAll(j.sodir)
 }
 
 func getPluginName(jobName string) string {

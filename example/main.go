@@ -16,7 +16,7 @@ type Payload struct {
 }
 
 func main() {
-	jer := jober.NewJober(filepath.Join(".", "tasks"), filepath.Join(".", "sos"))
+	jer := jober.NewJober(filepath.Join(".", "tasks"))
 	go jer.Start()
 
 	time.Sleep(2 * time.Second)

@@ -2,42 +2,41 @@ package pluginer
 
 import (
 	"fmt"
-	"os"
-	"os/exec"
-	"path/filepath"
 	"plugin"
 	"strings"
 
-	"github.com/satori/go.uuid"
+	"github.com/gobuffalo/uuid"
 )
 
 // RunFunc name for lookup
 const RunFunc = "Core"
 
-// Plugin a plugin program
+// Plugin a plugin instance
 type Plugin struct {
 	name    string
 	uuid    string
-	path    string // 源文件路径
-	dst     string // so 文件夹路径
-	sopath  string // so path
+	path    string // so 文件路径
 	plg     *plugin.Plugin
 	methods Methods
 }
 
-// NewPlugin create a new program
-func NewPlugin(path, dst string) (*Plugin, error) {
-	program := &Plugin{
+// NewPlugin create a new plugin
+func NewPlugin(path string) (*Plugin, error) {
+	uuid, err := uuid.NewV4()
+	if err != nil {
+		return nil, fmt.Errorf("uuid.NewV4 error: %s", err.Error())
+	}
+	plugin := &Plugin{
 		path: path,
-		dst:  dst,
+		uuid: uuid.String(),
 	}
-	if err := program.init(); err != nil {
-		return nil, err
+	if err := plugin.init(); err != nil {
+		return nil, fmt.Errorf("plugin init error: %s", err.Error())
 	}
-	return program, nil
+	return plugin, nil
 }
 
-// GetPath get program path
+// GetPath get the path of plugin's so file
 func (p *Plugin) GetPath() string {
 	return p.path
 }
@@ -52,26 +51,11 @@ func (p *Plugin) GetName() string {
 	return p.name
 }
 
-// GetDst get dst
-func (p *Plugin) GetDst() string {
-	return p.dst
-}
-
 // init get plugin
 func (p *Plugin) init() error {
-	p.uuid = uuid.NewV4().String()
-	p.sopath = filepath.Join(p.dst, p.uuid) + ".so"
-
-	cmd := exec.Command("go", "build", "-buildmode=plugin", "-o="+p.sopath, p.path)
-	cmd.Stderr = os.Stderr
-	cmd.Stdout = os.Stdout
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("could not compile %s: %v", p.path, err)
-	}
-
-	plg, err := plugin.Open(p.sopath)
+	plg, err := plugin.Open(p.path)
 	if err != nil {
-		return fmt.Errorf("could not open %s: %v", p.sopath, err)
+		return fmt.Errorf("could not open plugin at %s: %s", p.path, err.Error())
 	}
 
 	// bind core function
@@ -83,15 +67,18 @@ func (p *Plugin) init() error {
 	// check func type
 	itf, ok := symbol.(func() interface{})
 	if !ok {
-		return fmt.Errorf("plugin %s:: function [Methods] should be <func() interface{}>", p.sopath)
+		return fmt.Errorf("plugin %s:: function [Methods] should be <func() interface{}>", p.path)
 	}
 	// run and check the return value, the value should implemet Methods interface
 	methods, ok := itf().(Methods)
 	if !ok {
-		return fmt.Errorf("plugin %s is not implement Methods interface", p.sopath)
+		return fmt.Errorf("plugin %s is not implement Methods interface", p.path)
 	}
+
+	// bind plugin name
 	p.name = methods.PluginName()
 	p.methods = methods
+
 	// finally bind plugin
 	p.plg = plg
 
@@ -101,17 +88,20 @@ func (p *Plugin) init() error {
 // Run run job with the loaded plugin
 func (p *Plugin) Run(jobName string, input []byte) error {
 	vars := strings.Split(jobName, ".")
+	if vars[0] != p.GetName() {
+		return fmt.Errorf("plugin %s is not found", vars[0])
+	}
 	switch len(vars) {
 	case 1:
-		return p.RunDefault(input)
+		return p.runDefault(input)
 	case 2:
-		return p.RunByName(vars[1], input)
+		return p.runByName(vars[1], input)
 	}
-	return p.methods.DefaultMethod(input)
+	return fmt.Errorf("job %s is not a valid job", jobName)
 }
 
-// RunByName run job with the loaded plugin
-func (p *Plugin) RunByName(name string, input []byte) error {
+// runByName run job with the loaded plugin
+func (p *Plugin) runByName(name string, input []byte) error {
 	method, err := p.methods.GetMethodByName(name)
 	if err != nil {
 		return err
@@ -119,20 +109,11 @@ func (p *Plugin) RunByName(name string, input []byte) error {
 	return method(input)
 }
 
-// RunDefault run default method
-func (p *Plugin) RunDefault(input []byte) error {
-	fmt.Println("RunDefault 执行了")
+// runDefault run default method
+func (p *Plugin) runDefault(input []byte) error {
 	return p.methods.DefaultMethod(input)
 }
 
 func (p *Plugin) String() string {
-	return fmt.Sprintf("plugin %s [%s], path: %s", p.name, p.uuid, p.path)
-}
-
-// Destroy destroy plugin
-func (p *Plugin) Destroy() error {
-	p.plg = nil
-	fp := filepath.Join(".", p.sopath)
-	err := os.Remove(fp)
-	return err
+	return fmt.Sprintf("plugin id: %s, plugin name: %s, path: %s", p.GetID(), p.GetName(), p.GetPath())
 }
