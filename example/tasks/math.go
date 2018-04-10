@@ -24,11 +24,14 @@ func (m *math) GetMethodByName(name string) (func([]byte) error, error) {
 func (m *math) DefaultMethod(input []byte) error {
 	fmt.Println("default method 调用了")
 	p := &Payload{}
-	// p := new(Payload)
-	fmt.Println(input)
-	fmt.Printf("%+v \n", string(input))
+	if input == nil {
+		return nil
+	}
+
+	fmt.Printf("[INPUT] pt: %p, data: %+v \n", input, input)
+	fmt.Printf("[Payload] pt: %p, data: %+v \n", p, p)
 	err := json.Unmarshal(input, p)
-	fmt.Println("====111====")
+	fmt.Println("==== successful ====")
 	if err != nil {
 		fmt.Println("err: ", err)
 		return err

@@ -16,20 +16,19 @@ type Payload struct {
 
 func main() {
 	jer := jober.NewJober(filepath.Join(".", "tasks"), filepath.Join(".", "sos"))
-	jer.Start()
+	go jer.Start()
 
 	time.Sleep(2 * time.Second)
 	// jober.
 	for index := 0; index < 10; index++ {
 
-		time.Sleep(1 * time.Second)
+		// time.Sleep(1 * time.Second)
 		fmt.Println("******* send math default job *******")
 		n := []int{1, 2, 3, 4, 5}
 		pld := &Payload{
 			Element: n,
 		}
 		plgb, err := json.Marshal(pld)
-		fmt.Println(plgb)
 		if err != nil {
 			return
 		}

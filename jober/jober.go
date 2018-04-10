@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/go-done/mozi/jober/extracter"
 	"github.com/go-done/mozi/jober/queue"
@@ -65,20 +66,24 @@ func (j *Jober) Start() {
 	// load job from dir
 	j.loadJobsFromDir()
 
-	// start worker
-	for i := 0; i < 10; i++ {
-		go j.jobWorker(j.jobch)
-	}
-
 	// start load job
 	go j.jobLoader(j.jobch)
+
+	// start worker
+	for i := 0; i < 10; i++ {
+		go j.jobWorker(i, j.jobch)
+	}
+
+	time.Sleep(30 * time.Second)
 }
 
 // jobWorker worker for run job
-func (j *Jober) jobWorker(jobch <-chan *structs.JobArgs) error {
+func (j *Jober) jobWorker(idx int, jobch <-chan *structs.JobArgs) error {
 	for {
 		job, ok := <-jobch
-		if ok {
+
+		if ok && job != nil && job.Args != nil && job.Name != "" {
+			fmt.Printf("=== jobWorker [%d] === \n", idx)
 			err := j.execJob(job) // TODO send back exec result to another channel
 			fmt.Println("execjob error:", err)
 		}
@@ -98,10 +103,11 @@ func (j *Jober) AddJob(jobBody []byte) error {
 func (j *Jober) jobLoader(jobch chan<- *structs.JobArgs) {
 	for {
 		job, err := j.exter.LoadJobFromQueue(j.queue)
+		time.Sleep(1 * time.Second)
 		if err != nil {
 			fmt.Println("LoadJobFromQueue error: ", err)
+			continue
 		}
-		fmt.Println("new job: ", job)
 		jobch <- job
 	}
 }

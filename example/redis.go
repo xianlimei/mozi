@@ -14,14 +14,15 @@ type test struct {
 
 func main() {
 	client := redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",
-		Password: "", // no password set
-		DB:       0,  // use default DB
+		Addr:     "139.219.99.164:8379",
+		Password: "visual3d", // no password set
+		DB:       0,          // use default DB
 	})
 
-	_, err := client.Ping().Result()
-
+	pong, err := client.Ping().Result()
+	fmt.Println(pong)
 	if err != nil {
+		fmt.Println(err)
 		fmt.Println("connect failed")
 		return
 	}

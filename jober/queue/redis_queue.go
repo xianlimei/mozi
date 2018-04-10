@@ -3,6 +3,8 @@ package queue
 import (
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
+	"sync"
 
 	"github.com/go-done/mozi/jober/structs"
 	"github.com/go-redis/redis"
@@ -17,6 +19,8 @@ type redisqueue struct {
 	pi       int                // current index for popBuf
 	client   *redis.Client      // redis client
 	redisOpt *redis.Options     // redis option
+	addlock  *sync.Mutex
+	poplock  *sync.Mutex
 }
 
 // NewRedisQueue create a new redis queue
@@ -29,6 +33,7 @@ func NewRedisQueue(addr, password string, db int) Queue {
 	client := redis.NewClient(opt)
 	_, err := client.Ping().Result()
 	if err != nil {
+		fmt.Println(err)
 		panic("redis connect failed. addr: " + addr + "password: " + password + "db" + string(db))
 	}
 
@@ -39,15 +44,20 @@ func NewRedisQueue(addr, password string, db int) Queue {
 		pi:       -1,
 		client:   client,
 		redisOpt: opt,
+		addlock:  new(sync.Mutex),
+		poplock:  new(sync.Mutex),
 	}
 }
 
 func (r *redisqueue) Add(job *structs.JobArgs) error {
+	r.addlock.Lock()
+	defer r.addlock.Unlock()
 	jobName := job.Name
 	bt, err := json.Marshal(job)
 	if err != nil {
 		return err
 	}
+
 	_, err = r.client.RPush(getQueueKey(jobName), base64.StdEncoding.EncodeToString(bt)).Result()
 	return err
 }
