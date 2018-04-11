@@ -3,7 +3,6 @@ package jober
 import (
 	"errors"
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/go-done/mozi/jober/extracter"
@@ -50,11 +49,10 @@ func (j *Jober) Start() {
 	if j.hotLoad {
 		go func() {
 			for signal := range j.notifyer.ChangedFile {
-				n, fp, err := notify.DecodeSignal(signal)
+				_, fp, err := notify.DecodeSignal(signal)
 				if err != nil {
 					continue
 				}
-				log.Printf("=====> load plugin: %s, type: %v", fp, n)
 				j.plger.LoadPlugin(fp)
 			}
 		}()
@@ -70,8 +68,6 @@ func (j *Jober) Start() {
 	for i := 0; i < 10; i++ {
 		go j.jobWorker(i, j.jobch)
 	}
-
-	// time.Sleep(30 * time.Second)
 }
 
 // jobWorker worker for run job
@@ -80,9 +76,10 @@ func (j *Jober) jobWorker(idx int, jobch <-chan *structs.JobArgs) error {
 		job, ok := <-jobch
 
 		if ok && job != nil && job.Args != nil && job.Name != "" {
-			fmt.Printf("=== jobWorker [%d] === \n", idx)
 			err := j.execJob(job) // TODO send back exec result to another channel
-			fmt.Println("execjob error:", err)
+			if err != nil {
+				fmt.Printf("job %s exec wrong: %v", job.Name, err)
+			}
 		}
 	}
 }
@@ -140,7 +137,8 @@ func (j *Jober) execJob(args *structs.JobArgs) error {
 	id := job.GetID()
 	j.jobs[id] = job
 
-	fmt.Printf("exec job, %+v, %T\n", args, args)
+	// run the job
+	job.Run(name, args.Args)
 
 	return nil
 }
