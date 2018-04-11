@@ -77,7 +77,7 @@ func TestFileWatcher_AddDir(t *testing.T) {
 			t.Errorf("FileWatcher.AddDir() add dir failed")
 		}
 		var hasAdded bool
-		for _, dir := range w.Dirs {
+		for _, dir := range w.dirs {
 			if dir == tp {
 				hasAdded = true
 			}
@@ -92,10 +92,10 @@ func TestFileWatcher_AddDir(t *testing.T) {
 			t.Errorf("FileWatcher.AddDir() add dir failed")
 		}
 
-		if !reflect.DeepEqual([]string{tp}, w.Dirs) {
+		if !reflect.DeepEqual([]string{tp}, w.dirs) {
 			t.Errorf("FileWatcher.AddDir() add dir failed")
 		}
-		w.Dirs = make([]string, 0)
+		w.dirs = make([]string, 0)
 	})
 
 	t.Run("add dir failed for unexist dir", func(t *testing.T) {
@@ -106,7 +106,7 @@ func TestFileWatcher_AddDir(t *testing.T) {
 			t.Errorf("FileWatcher.AddDir() expect to get err when add unexist dir")
 			return
 		}
-		w.Dirs = make([]string, 0)
+		w.dirs = make([]string, 0)
 	})
 
 	t.Run("add dir failed for a exist file dir", func(t *testing.T) {
@@ -119,7 +119,7 @@ func TestFileWatcher_AddDir(t *testing.T) {
 			t.Errorf("FileWatcher.AddDir() expect to get err when add a exist file")
 			return
 		}
-		w.Dirs = make([]string, 0)
+		w.dirs = make([]string, 0)
 	})
 }
 
@@ -140,10 +140,10 @@ func TestFileWatcher_AddDirs(t *testing.T) {
 			t.Errorf("FileWatcher.AddDirs() add dirs failed 1")
 		}
 
-		if !reflect.DeepEqual([]string{tp1, tp2}, w.Dirs) {
+		if !reflect.DeepEqual([]string{tp1, tp2}, w.dirs) {
 			t.Errorf("FileWatcher.AddDirs() add dirs failed 2")
 		}
-		w.Dirs = make([]string, 0)
+		w.dirs = make([]string, 0)
 	})
 }
 
