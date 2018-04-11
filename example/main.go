@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/go-done/mozi/jober"
+	"github.com/go-done/mozi/jober/queue"
 	"github.com/go-done/mozi/jober/structs"
 )
 
@@ -16,11 +17,12 @@ type Payload struct {
 }
 
 func main() {
-	jer := jober.NewJober(filepath.Join(".", "tasks"))
+	q := queue.NewRedisQueue("localhost:6379", "", 0)
+	jer := jober.NewJober(filepath.Join(".", "tasks"), q)
 	go jer.Start()
 
-	time.Sleep(2 * time.Second)
-	// jober.
+	// time.Sleep(2 * time.Second)
+
 	for index := 0; index < 10; index++ {
 
 		// time.Sleep(1 * time.Second)
@@ -66,7 +68,6 @@ func main() {
 		}
 
 	}
-	time.Sleep(30 * time.Second)
 
-	jer.Clear()
+	time.Sleep(30 * time.Second)
 }

@@ -81,7 +81,6 @@ func (p *Plugin) init() error {
 
 	// finally bind plugin
 	p.plg = plg
-
 	return nil
 }
 

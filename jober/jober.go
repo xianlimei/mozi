@@ -3,8 +3,8 @@ package jober
 import (
 	"errors"
 	"fmt"
+	"log"
 	"strings"
-	"time"
 
 	"github.com/go-done/mozi/jober/extracter"
 	"github.com/go-done/mozi/jober/queue"
@@ -27,12 +27,11 @@ type Jober struct {
 }
 
 // NewJober create a new Job
-func NewJober(dir string) *Jober {
-	plger := pluginer.NewPluginer(sodir)
+func NewJober(dir string, qu queue.Queue) *Jober {
+	plger := pluginer.NewPluginer()
 	notifyer := notify.NewFileWatcher()
 	notifyer.AddDir(dir)
 	exter := extracter.NewExtracter()
-	q := queue.NewRedisQueue("localhost:6379", "", 0)
 
 	return &Jober{
 		jobs:     make(map[string]*Job),
@@ -42,7 +41,7 @@ func NewJober(dir string) *Jober {
 		notifyer: notifyer,
 		exter:    exter,
 		jobch:    make(chan *structs.JobArgs, 20),
-		queue:    q,
+		queue:    qu,
 	}
 }
 
@@ -51,10 +50,11 @@ func (j *Jober) Start() {
 	if j.hotLoad {
 		go func() {
 			for signal := range j.notifyer.ChangedFile {
-				_, fp, err := notify.DecodeSignal(signal)
+				n, fp, err := notify.DecodeSignal(signal)
 				if err != nil {
 					continue
 				}
+				log.Printf("=====> load plugin: %s, type: %v", fp, n)
 				j.plger.LoadPlugin(fp)
 			}
 		}()
@@ -71,7 +71,7 @@ func (j *Jober) Start() {
 		go j.jobWorker(i, j.jobch)
 	}
 
-	time.Sleep(30 * time.Second)
+	// time.Sleep(30 * time.Second)
 }
 
 // jobWorker worker for run job
@@ -100,7 +100,6 @@ func (j *Jober) AddJob(jobBody []byte) error {
 func (j *Jober) jobLoader(jobch chan<- *structs.JobArgs) {
 	for {
 		job, err := j.exter.LoadJobFromQueue(j.queue)
-		time.Sleep(1 * time.Second)
 		if err != nil {
 			fmt.Println("LoadJobFromQueue error: ", err)
 			continue
@@ -125,10 +124,6 @@ func (j *Jober) loadJobsFromDir() (err error) {
 	return err
 }
 
-type Payload struct {
-	Element []int `json:"element"`
-}
-
 // execJob run a job
 func (j *Jober) execJob(args *structs.JobArgs) error {
 	name := args.Name
@@ -144,20 +139,10 @@ func (j *Jober) execJob(args *structs.JobArgs) error {
 	job := NewJob(plg)
 	id := job.GetID()
 	j.jobs[id] = job
-	// p := &Payload{}
-	// json.Unmarshal(args.Args, p)
-	// fmt.Printf("exec job, %+v", p)
+
 	fmt.Printf("exec job, %+v, %T\n", args, args)
-	//fmt.Printf("exec job, %+v, %T\n", string(args.Args), args.Args)
-	// run the job
-	job.Run(name, args.Args)
 
 	return nil
-}
-
-// Clear clear all plugin
-func (j *Jober) Clear() {
-	j.plger.DestroyAllPlugins()
 }
 
 func getPluginName(jobName string) string {

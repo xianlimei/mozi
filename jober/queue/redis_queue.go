@@ -3,7 +3,6 @@ package queue
 import (
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"sync"
 
 	"github.com/go-done/mozi/jober/structs"
@@ -33,7 +32,6 @@ func NewRedisQueue(addr, password string, db int) Queue {
 	client := redis.NewClient(opt)
 	_, err := client.Ping().Result()
 	if err != nil {
-		fmt.Println(err)
 		panic("redis connect failed. addr: " + addr + "password: " + password + "db" + string(db))
 	}
 
