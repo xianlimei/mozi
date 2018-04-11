@@ -31,7 +31,7 @@ const signalSplit = "|"
 // FileWatcher watch file
 type FileWatcher struct {
 	ChangedFile chan string
-	Dirs        []string
+	dirs        []string
 	watcher     *fsnotify.Watcher
 	closeChan   chan bool
 }
@@ -60,14 +60,15 @@ func (fw *FileWatcher) StartWatch() error {
 	go func() {
 		for {
 			select {
-			case event := <-watcher.Event:
-				if err := fw.sendSignalByNofifyEvent(event); err != nil {
-					log.Fatalf("message send failed: %v", err)
+			case event, ok := <-watcher.Event:
+				if ok {
+					if err := fw.sendSignalByNofifyEvent(event); err != nil {
+						log.Fatalf("message send failed: %v", err)
+					}
 				}
 			case err := <-watcher.Error:
-				log.Println("error:", err)
+				log.Fatalf("error: %v", err)
 			case <-fw.closeChan:
-				log.Println("close file watcher....")
 				close(fw.ChangedFile)
 				close(fw.closeChan)
 				goto END_FOR
@@ -134,7 +135,7 @@ func DecodeSignal(signal string) (header EventType, filename string, err error) 
 
 // AddDir add a new dir
 func (fw *FileWatcher) AddDir(dir string) error {
-	for _, d := range fw.Dirs {
+	for _, d := range fw.dirs {
 		if dir == d {
 			return nil
 		}
@@ -146,7 +147,7 @@ func (fw *FileWatcher) AddDir(dir string) error {
 func (fw *FileWatcher) AddDirs(dirs []string) error {
 	for _, dir := range dirs {
 		var has bool
-		for _, d := range fw.Dirs {
+		for _, d := range fw.dirs {
 			if dir == d {
 				has = true
 			}
@@ -173,6 +174,6 @@ func (fw *FileWatcher) addDir(dir string) error {
 	if err := fw.watcher.Watch(dir); err != nil {
 		return fmt.Errorf("watch dir: %s failed, err: %v", dir, err)
 	}
-	fw.Dirs = append(fw.Dirs, dir)
+	fw.dirs = append(fw.dirs, dir)
 	return nil
 }

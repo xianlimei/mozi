@@ -5,12 +5,12 @@ import (
 	"path/filepath"
 )
 
-// TraversalDir Traversal dir file
-func TraversalDir(dir string, fc func(fp string)) {
+// TraversalDirByExt Traversal dir file
+func TraversalDirByExt(dir, ext string, fc func(fp string)) {
 	filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if err == nil && !info.IsDir() {
 			fn := info.Name()
-			if filepath.Ext(fn) == ".go" {
+			if filepath.Ext(fn) == ext {
 				fc(path)
 			}
 		}
